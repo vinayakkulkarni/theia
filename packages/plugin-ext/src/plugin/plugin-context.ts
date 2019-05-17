@@ -107,7 +107,8 @@ import {
     OperatingSystem,
     WebviewPanelTargetArea,
     FileSystemError,
-    CommentThreadCollapsibleState
+    CommentThreadCollapsibleState,
+    QuickInputButtons
 } from './types-impl';
 import { SymbolKind } from '../api/model';
 import { EditorsAndDocumentsExtImpl } from './editors-and-documents';
@@ -291,7 +292,7 @@ export function createAPIFactory(
                 }
             },
             createQuickPick<T extends QuickPickItem>(): QuickPick<T> {
-                return quickOpenExt.createQuickPick();
+                return quickOpenExt.createQuickPick(plugin);
             },
             showWorkspaceFolderPick(options?: theia.WorkspaceFolderPickOptions): PromiseLike<theia.WorkspaceFolder | undefined> {
                 return workspaceExt.pickWorkspaceFolder(options);
@@ -370,6 +371,9 @@ export function createAPIFactory(
             },
             registerUriHandler(handler: theia.UriHandler): theia.Disposable {
                 return new Disposable(() => { });
+            },
+            createInputBox(): theia.InputBox {
+                return quickOpenExt.createInputBox(plugin);
             }
         };
 
@@ -809,7 +813,8 @@ export function createAPIFactory(
             OperatingSystem,
             WebviewPanelTargetArea,
             FileSystemError,
-            CommentThreadCollapsibleState
+            CommentThreadCollapsibleState,
+            QuickInputButtons
         };
     };
 }
