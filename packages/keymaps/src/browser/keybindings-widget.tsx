@@ -88,6 +88,23 @@ export class KeybindingWidget extends ReactWidget {
         }
     }
 
+    /**
+     * Clear the keybindings search input
+     */
+    public clearInput(): void {
+        this.query = '';
+        this.clearSearchField();
+        this.doSearchKeybindings();
+    }
+
+    /**
+     * Determine if a search query is present.
+     * @returns `true` if a search query is present.
+     */
+    public hasInput(): boolean {
+        return !!this.query;
+    }
+
     protected onActivateRequest(msg: Message) {
         super.onActivateRequest(msg);
         this.focusInputField();
@@ -160,6 +177,13 @@ export class KeybindingWidget extends ReactWidget {
 
     protected findSearchField(): HTMLInputElement | null {
         return document.getElementById('search-kb') as HTMLInputElement;
+    }
+
+    protected clearSearchField(): void {
+        const searchField = this.findSearchField();
+        if (searchField) {
+            searchField.value = '';
+        }
     }
 
     protected focusInputField() {

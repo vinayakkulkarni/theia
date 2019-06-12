@@ -45,6 +45,10 @@ export namespace KeymapsCommands {
         id: 'keymaps:openJson.toolbar',
         iconClass: 'theia-open-json-icon'
     };
+    export const CLEAR_KEYBINDINGS_INPUT: Command = {
+        id: 'keymaps:clear.keybindings',
+        iconClass: 'clear-all'
+    };
 }
 
 @injectable()
@@ -73,9 +77,14 @@ export class KeymapsFrontendContribution extends AbstractViewContribution<Keybin
             execute: () => this.keymaps.open()
         });
         commands.registerCommand(KeymapsCommands.OPEN_KEYMAPS_JSON_TOOLBAR, {
-            isEnabled: widget => this.isKeybindingWidget(widget),
-            isVisible: widget => this.isKeybindingWidget(widget),
+            isEnabled: widget => this.withWidget(widget, () => true),
+            isVisible: widget => this.withWidget(widget, () => true),
             execute: () => this.keymaps.open()
+        });
+        commands.registerCommand(KeymapsCommands.CLEAR_KEYBINDINGS_INPUT, {
+            isEnabled: w => this.withWidget(w, widget => widget.hasInput()),
+            isVisible: w => this.withWidget(w, () => true),
+            execute: w => this.withWidget(w, widget => widget.clearInput()),
         });
     }
 
@@ -97,13 +106,22 @@ export class KeymapsFrontendContribution extends AbstractViewContribution<Keybin
         toolbar.registerItem({
             id: KeymapsCommands.OPEN_KEYMAPS_JSON_TOOLBAR.id,
             command: KeymapsCommands.OPEN_KEYMAPS_JSON_TOOLBAR.id,
-            tooltip: 'Open Keyboard Shortcuts in JSON'
+            tooltip: 'Open Keyboard Shortcuts in JSON',
+            priority: 0
+        });
+        toolbar.registerItem({
+            id: KeymapsCommands.CLEAR_KEYBINDINGS_INPUT.id,
+            command: KeymapsCommands.CLEAR_KEYBINDINGS_INPUT.id,
+            tooltip: 'Clear Keybindings Search Input',
+            priority: 1
         });
     }
 
-    protected isKeybindingWidget(widget: Widget | undefined = this.tryGetWidget()): boolean {
-        return widget instanceof KeybindingWidget && widget.id === KeybindingWidget.ID
-            ? true
-            : false;
+    protected withWidget<T>(widget: Widget | undefined = this.tryGetWidget(), fn: (widget: KeybindingWidget) => T): T | false {
+        if (widget instanceof KeybindingWidget && widget.id === KeybindingWidget.ID) {
+            return fn(widget);
+        }
+        return false;
     }
+
 }
