@@ -464,7 +464,7 @@ export class ViewContainerPart extends BaseWidget {
             return;
         }
         this._collapsed = collapsed;
-        this.body.style.display = collapsed ? 'none' : 'block';
+        this.wrapped.setHidden(collapsed);
         const toggleIcon = this.header.querySelector(`span.${EXPANSION_TOGGLE_CLASS}`);
         if (toggleIcon) {
             if (collapsed) {
@@ -623,6 +623,20 @@ export class ViewContainerPart extends BaseWidget {
         };
     }
 
+    protected onResize(msg: Widget.ResizeMessage): void {
+        if (this.wrapped.isAttached && !this.collapsed) {
+            MessageLoop.sendMessage(this.wrapped, Widget.ResizeMessage.UnknownSize);
+        }
+        super.onResize(msg);
+    }
+
+    protected onUpdateRequest(msg: Message): void {
+        if (this.wrapped.isAttached && !this.collapsed) {
+            MessageLoop.sendMessage(this.wrapped, msg);
+        }
+        super.onUpdateRequest(msg);
+    }
+
     protected onAfterAttach(msg: Message): void {
         if (!this.wrapped.isAttached) {
             Widget.attach(this.wrapped, this.body);
@@ -637,11 +651,32 @@ export class ViewContainerPart extends BaseWidget {
         }
     }
 
-    protected onUpdateRequest(msg: Message): void {
-        if (this.wrapped.isAttached) {
-            this.wrapped.update();
+    protected onBeforeShow(msg: Message): void {
+        if (this.wrapped.isAttached && !this.collapsed) {
+            MessageLoop.sendMessage(this.wrapped, msg);
         }
-        super.onUpdateRequest(msg);
+        super.onBeforeShow(msg);
+    }
+
+    protected onAfterShow(msg: Message): void {
+        super.onAfterShow(msg);
+        if (this.wrapped.isAttached && !this.collapsed) {
+            MessageLoop.sendMessage(this.wrapped, msg);
+        }
+    }
+
+    protected onBeforeHide(msg: Message): void {
+        if (this.wrapped.isAttached && this.collapsed) {
+            MessageLoop.sendMessage(this.wrapped, msg);
+        }
+        super.onBeforeShow(msg);
+    }
+
+    protected onAfterHide(msg: Message): void {
+        super.onAfterHide(msg);
+        if (this.wrapped.isAttached && this.collapsed) {
+            MessageLoop.sendMessage(this.wrapped, msg);
+        }
     }
 
 }
