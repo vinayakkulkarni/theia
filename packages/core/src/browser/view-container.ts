@@ -15,7 +15,6 @@
  ********************************************************************************/
 
 import { interfaces, injectable, inject, postConstruct } from 'inversify';
-import { v4 } from 'uuid';
 import { IIterator, toArray, find, some, every, map } from '@phosphor/algorithm';
 import {
     Widget, EXPANSION_TOGGLE_CLASS, COLLAPSED_CLASS, MessageLoop, Message, SplitPanel, BaseWidget,
@@ -35,9 +34,10 @@ import { WidgetManager } from './widget-manager';
 
 @injectable()
 export class ViewContainerOptions {
-    id?: string;
+    id: string;
     label?: string;
     caption?: string;
+    iconClass?: string;
 }
 
 /**
@@ -74,13 +74,7 @@ export class ViewContainer extends BaseWidget implements StatefulWidget, Applica
 
     @postConstruct()
     protected init(): void {
-        this.id = this.options.id || `view-container-widget-${v4()}`;
-        if (this.options.label) {
-            this.title.label = this.options.label;
-        }
-        if (this.options.caption) {
-            this.title.caption = this.options.caption;
-        }
+        this.id = this.options.id;
         this.addClass('theia-view-container');
         const layout = new ViewContainerLayout({
             renderer: SplitPanel.defaultRenderer,
@@ -90,6 +84,7 @@ export class ViewContainer extends BaseWidget implements StatefulWidget, Applica
             animationDuration: 200
         }, this.splitPositionHandler);
         this.panel = new SplitPanel({ layout });
+        this.updateTitles();
 
         const { commandRegistry, menuRegistry, contextMenuRenderer } = this;
         commandRegistry.registerCommand({ id: this.globalHideCommandId }, {
@@ -125,6 +120,37 @@ export class ViewContainer extends BaseWidget implements StatefulWidget, Applica
         ]);
     }
 
+    protected updateTitles(): void {
+        const visibleParts = this.layout.widgets.filter(part => part.isVisible);
+        if (this.options.label) {
+            this.title.label = this.options.label;
+            if (visibleParts.length === 1) {
+                const part = visibleParts[0];
+                const partLabel = part.wrapped.title.label;
+                if (partLabel) {
+                    this.title.label += ': ' + partLabel;
+                }
+                part.collapsed = false;
+                part.hideTitle();
+            } else {
+                visibleParts.forEach(part => part.showTitle());
+            }
+        }
+        const caption = this.options.caption || this.options.label;
+        if (caption) {
+            this.title.caption = caption;
+            if (visibleParts.length === 1) {
+                const partCaption = visibleParts[0].wrapped.title.caption || visibleParts[0].wrapped.title.label;
+                if (partCaption) {
+                    this.title.caption += ': ' + partCaption;
+                }
+            }
+        }
+        if (this.options.iconClass) {
+            this.title.iconClass = this.options.iconClass;
+        }
+    }
+
     protected findPartForAnchor(anchor: Anchor): ViewContainerPart | undefined {
         const element = document.elementFromPoint(anchor.x, anchor.y);
         if (element instanceof Element) {
@@ -155,24 +181,11 @@ export class ViewContainer extends BaseWidget implements StatefulWidget, Applica
             this.layout.addWidget(newPart);
         }
         this.refreshMenu(newPart);
+        this.updateTitles();
         this.update();
         return new DisposableCollection(
             Disposable.create(() => this.removeWidget(widget)),
-            newPart.onVisibilityChanged(() => {
-                const visibleParts = this.layout.widgets.filter(part => part.isVisible);
-                if (this.options.label) {
-                    this.title.label = this.options.label;
-                    if (visibleParts.length === 1) {
-                        this.title.label += ':' + visibleParts[0].wrapped.title.label;
-                    }
-                }
-                if (this.options.caption) {
-                    this.title.caption = this.options.caption;
-                    if (visibleParts.length === 1) {
-                        this.title.caption += ':' + visibleParts[0].wrapped.title.caption;
-                    }
-                }
-            }),
+            newPart.onVisibilityChanged(() => this.updateTitles()),
             newPart.onCollapsed(() => this.layout.updateCollapsed(newPart, this.enableAnimation)),
             newPart.onMoveBefore(toMoveId => this.moveBefore(toMoveId, newPart.id)),
             newPart.onContextMenu(event => {
@@ -395,7 +408,7 @@ export namespace ViewContainer {
 
     export const Factory = Symbol('ViewContainerFactory');
     export interface Factory {
-        (options?: ViewContainerOptions): ViewContainer;
+        (options: ViewContainerOptions): ViewContainer;
     }
 
     export namespace Factory {
@@ -531,6 +544,20 @@ export class ViewContainerPart extends BaseWidget {
         } else {
             return parseCssMagnitude(style.minHeight, 0);
         }
+    }
+
+    protected readonly toShowHeader = new DisposableCollection();
+    showTitle(): void {
+        this.toShowHeader.dispose();
+    }
+
+    hideTitle(): void {
+        const display = this.header.style.display;
+        if (display === 'none') {
+            return;
+        }
+        this.header.style.display = 'none';
+        this.toShowHeader.push(Disposable.create(() => this.header.style.display = display));
     }
 
     protected getScrollContainer(): HTMLElement {
