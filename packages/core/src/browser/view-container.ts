@@ -18,7 +18,7 @@ import { interfaces, injectable, inject, postConstruct } from 'inversify';
 import { IIterator, toArray, find, some, every, map } from '@phosphor/algorithm';
 import {
     Widget, EXPANSION_TOGGLE_CLASS, COLLAPSED_CLASS, MessageLoop, Message, SplitPanel, BaseWidget,
-    addEventListener, SplitLayout, LayoutItem, PanelLayout
+    addEventListener, SplitLayout, LayoutItem, PanelLayout, addKeyListener
 } from './widgets';
 import { Event, Emitter } from '../common/event';
 import { Deferred } from '../common/promise-util';
@@ -32,6 +32,7 @@ import { ContextMenuRenderer, Anchor } from './context-menu-renderer';
 import { parseCssMagnitude } from './browser';
 import { WidgetManager } from './widget-manager';
 import { TabBarToolbarItem, TabBarToolbarRegistry } from './shell/tab-bar-toolbar';
+import { Key } from './keys';
 
 export interface ViewContainerTitleOptions {
     label: string;
@@ -95,6 +96,7 @@ export class ViewContainer extends BaseWidget implements StatefulWidget, Applica
                 animationDuration: 200
             }, this.splitPositionHandler)
         });
+        this.panel.node.tabIndex = 0;
         layout.addWidget(this.panel);
 
         const { commandRegistry, menuRegistry, contextMenuRenderer } = this;
@@ -461,7 +463,14 @@ export class ViewContainer extends BaseWidget implements StatefulWidget, Applica
 
     protected onActivateRequest(msg: Message): void {
         super.onActivateRequest(msg);
-        this.panel.activate();
+        const visibleParts = this.containerLayout.widgets.filter(p => !p.isHidden);
+        const expandedParts = visibleParts.filter(p => !p.collapsed);
+        const part = expandedParts[0] || visibleParts[0];
+        if (part) {
+            part.activate();
+        } else {
+            this.panel.node.focus();
+        }
     }
 
     protected onAfterAttach(msg: Message): void {
@@ -577,7 +586,6 @@ export class ViewContainerPart extends BaseWidget {
             suppressScrollX: true,
             minScrollbarLength: 35
         };
-        this.node.tabIndex = 0;
         this.collapsed = !!options.initiallyCollapsed;
         if (options.initiallyHidden && this.canHide) {
             this.hide();
@@ -731,10 +739,14 @@ export class ViewContainerPart extends BaseWidget {
     protected createHeader(): { header: HTMLElement, disposable: Disposable } {
         const disposable = new DisposableCollection();
         const header = document.createElement('div');
+        header.tabIndex = 0;
         header.classList.add('theia-header', 'header');
         disposable.push(addEventListener(header, 'click', () => {
             this.collapsed = !this.collapsed;
         }));
+        disposable.push(addKeyListener(header, Key.ARROW_LEFT, () => this.collapsed = true));
+        disposable.push(addKeyListener(header, Key.ARROW_RIGHT, () => this.collapsed = false));
+        disposable.push(addKeyListener(header, Key.ENTER, () => this.collapsed = !this.collapsed));
 
         const toggleIcon = document.createElement('span');
         toggleIcon.classList.add(EXPANSION_TOGGLE_CLASS);
@@ -888,6 +900,15 @@ export class ViewContainerPart extends BaseWidget {
     protected onChildRemoved(msg: Widget.ChildMessage): void {
         super.onChildRemoved(msg);
         this.dispose();
+    }
+
+    protected onActivateRequest(msg: Message): void {
+        super.onActivateRequest(msg);
+        if (this.collapsed) {
+            this.header.focus();
+        } else {
+            this.wrapped.activate();
+        }
     }
 
     setFlag(flag: Widget.Flag): void {
