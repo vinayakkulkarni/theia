@@ -292,15 +292,13 @@ export class TreeWidget extends ReactWidget implements StatefulWidget {
     protected onActivateRequest(msg: Message): void {
         super.onActivateRequest(msg);
         this.node.focus();
-        if (this.model.selectedNodes.length === 0) {
-            const root = this.model.root;
-            if (SelectableTreeNode.is(root)) {
-                this.model.selectNode(root);
-            } else if (CompositeTreeNode.is(root) && root.children.length >= 1) {
-                const firstChild = root.children[0];
-                if (SelectableTreeNode.is(firstChild)) {
-                    this.model.selectNode(firstChild);
-                }
+    }
+
+    protected doFocus(): void {
+        if (!this.model.selectedNodes.length) {
+            const node = this.getNodeToFocus();
+            if (SelectableTreeNode.is(node)) {
+                this.model.selectNode(node);
             }
         }
         // it has to be called after nodes are selected
@@ -308,6 +306,14 @@ export class TreeWidget extends ReactWidget implements StatefulWidget {
             this.updateGlobalSelection();
         }
         this.forceUpdate();
+    }
+
+    protected getNodeToFocus(): SelectableTreeNode | undefined {
+        const root = this.model.root;
+        if (SelectableTreeNode.isVisible(root)) {
+            return root;
+        }
+        return this.model.getNextSelectableNode(root);
     }
 
     protected onUpdateRequest(msg: Message): void {
@@ -727,6 +733,7 @@ export class TreeWidget extends ReactWidget implements StatefulWidget {
                 this.view.list.Grid.handleScrollEvent({ scrollTop });
             }
         });
+        this.addEventListener(this.node, 'focus', () => this.doFocus());
     }
 
     protected async handleLeft(event: KeyboardEvent): Promise<void> {
