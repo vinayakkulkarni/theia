@@ -305,6 +305,11 @@ export class TerminalWidgetImpl extends TerminalWidget implements StatefulWidget
         if (IBaseTerminalServer.validateId(terminalId)) {
             return terminalId;
         }
+        if (this.options.id) {
+            // Do not re-create a new terminal after the Backend reload for any tasks
+            this.dispose();
+            return -1;
+        }
         this.logger.error(`Error attaching to terminal id ${id}, the terminal is most likely gone. Starting up a new terminal instead.`);
         return this.createTerminal();
     }

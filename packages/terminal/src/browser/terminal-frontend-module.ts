@@ -54,7 +54,7 @@ export default new ContainerModule(bind => {
             const counter = terminalNum++;
             const domId = options.id || 'terminal-' + counter;
             const widgetOptions: TerminalWidgetOptions = {
-                title: 'Terminal ' + counter,
+                title: domId,
                 useServerTitle: true,
                 destroyTermOnClose: true,
                 ...options

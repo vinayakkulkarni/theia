@@ -452,7 +452,7 @@ export class TaskService implements TaskConfigurationClient {
             TERMINAL_WIDGET_FACTORY_ID,
             <TerminalWidgetFactoryOptions>{
                 created: new Date().toString(),
-                id: 'terminal-' + terminalId,
+                id: 'task-' + terminalId,
                 title: taskInfo
                     ? `Task: ${taskInfo.config.label}`
                     : `Task: #${taskId}`,
