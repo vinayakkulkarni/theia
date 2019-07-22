@@ -68,10 +68,6 @@
     background: var(--theia-icon-refresh) no-repeat;
 }
 
-.p-TabBar-toolbar .item .collapse-all {
-    background: var(--theia-icon-collapse-all) no-repeat;
-}
-
 .p-TabBar-toolbar .item .clear-all {
     background: var(--theia-icon-clear) no-repeat;
 }
