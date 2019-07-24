@@ -21,8 +21,8 @@ import { ContextMenuRenderer } from '@theia/core/lib/browser';
 import { MonacoEditor } from '@theia/monaco/lib/browser/monaco-editor';
 import { DebugSessionManager } from '../debug-session-manager';
 import { DebugEditorModel, DebugEditorModelFactory } from './debug-editor-model';
-import { BreakpointManager, BreakpointsChangeEvent } from '../breakpoint/breakpoint-manager';
-import { DebugBreakpoint } from '../model/debug-breakpoint';
+import { BreakpointManager, SourceBreakpointsChangeEvent } from '../breakpoint/breakpoint-manager';
+import { DebugSourceBreakpoint } from '../model/debug-source-breakpoint';
 import { DebugBreakpointWidget } from './debug-breakpoint-widget';
 
 @injectable()
@@ -84,7 +84,7 @@ export class DebugEditorService {
         return uri && this.models.get(uri.toString());
     }
 
-    get logpoint(): DebugBreakpoint | undefined {
+    get logpoint(): DebugSourceBreakpoint | undefined {
         const logpoint = this.anyBreakpoint;
         return logpoint && logpoint.logMessage ? logpoint : undefined;
     }
@@ -93,7 +93,7 @@ export class DebugEditorService {
         return logpoint && logpoint.enabled;
     }
 
-    get breakpoint(): DebugBreakpoint | undefined {
+    get breakpoint(): DebugSourceBreakpoint | undefined {
         const breakpoint = this.anyBreakpoint;
         return breakpoint && breakpoint.logMessage ? undefined : breakpoint;
     }
@@ -102,7 +102,7 @@ export class DebugEditorService {
         return breakpoint && breakpoint.enabled;
     }
 
-    get anyBreakpoint(): DebugBreakpoint | undefined {
+    get anyBreakpoint(): DebugSourceBreakpoint | undefined {
         return this.model && this.model.breakpoint;
     }
 
@@ -150,8 +150,8 @@ export class DebugEditorService {
         }
     }
     editBreakpoint(): Promise<void>;
-    editBreakpoint(breakpoint: DebugBreakpoint): Promise<void>;
-    async editBreakpoint(breakpoint: DebugBreakpoint | undefined = this.anyBreakpoint): Promise<void> {
+    editBreakpoint(breakpoint: DebugSourceBreakpoint): Promise<void>;
+    async editBreakpoint(breakpoint: DebugSourceBreakpoint | undefined = this.anyBreakpoint): Promise<void> {
         if (breakpoint) {
             await breakpoint.open();
             const model = this.models.get(breakpoint.uri.toString());
@@ -172,7 +172,7 @@ export class DebugEditorService {
             model.acceptBreakpoint();
         }
     }
-    protected closeBreakpointIfAffected({ uri, removed }: BreakpointsChangeEvent) {
+    protected closeBreakpointIfAffected({ uri, removed }: SourceBreakpointsChangeEvent) {
         const model = this.models.get(uri.toString());
         if (!model) {
             return;
