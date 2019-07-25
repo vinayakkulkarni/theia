@@ -102,6 +102,10 @@ export class DebugEditorService {
         return breakpoint && breakpoint.enabled;
     }
 
+    get inlineBreakpoint(): DebugSourceBreakpoint | undefined {
+        return this.model && this.model.inlineBreakpoint;
+    }
+
     get anyBreakpoint(): DebugSourceBreakpoint | undefined {
         return this.model && this.model.breakpoint;
     }
@@ -112,10 +116,25 @@ export class DebugEditorService {
             model.toggleBreakpoint();
         }
     }
+
+    removeBreakpoint(): void {
+        const { anyBreakpoint } = this;
+        if (anyBreakpoint) {
+            anyBreakpoint.remove();
+        }
+    }
+
     setBreakpointEnabled(enabled: boolean): void {
         const { anyBreakpoint } = this;
         if (anyBreakpoint) {
             anyBreakpoint.setEnabled(enabled);
+        }
+    }
+
+    addInlineBreakpoint(): void {
+        const { model } = this;
+        if (model) {
+            model.addInlineBreakpoint();
         }
     }
 
