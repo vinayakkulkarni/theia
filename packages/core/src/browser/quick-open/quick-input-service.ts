@@ -119,6 +119,11 @@ export class QuickInputService {
         let currentText = '';
         const validateInput = options && options.validateInput;
 
+        const widgetNode = this.quickOpenService.widgetNode;
+        if (widgetNode && widgetNode.offsetParent !== null) {
+            this.quickOpenService.hide();
+        }
+
         if (options && this.quickTitleBar.shouldShowTitleBar(options.title, options.step)) {
             this.quickTitleBar.attachTitleBar(this.quickOpenService.widgetNode, options.title, options.step, options.totalSteps, options.buttons);
         }

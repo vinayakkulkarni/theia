@@ -35,6 +35,10 @@ export class QuickPickServiceImpl implements QuickPickService {
     show<T>(elements: QuickPickItem<T>[], options?: QuickPickOptions): Promise<T | undefined>;
     async show(elements: (string | QuickPickItem<Object>)[], options?: QuickPickOptions): Promise<Object | undefined> {
         return new Promise<Object | undefined>(resolve => {
+            const widgetNode = this.quickOpenService.widgetNode;
+            if (widgetNode && widgetNode.offsetParent !== null) {
+                this.quickOpenService.hide();
+            }
             const items = this.toItems(elements, resolve);
             if (items.length === 1) {
                 items[0].run(QuickOpenMode.OPEN);
