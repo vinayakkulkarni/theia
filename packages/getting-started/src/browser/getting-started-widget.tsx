@@ -21,30 +21,50 @@ import { ReactWidget } from '@theia/core/lib/browser/widgets/react-widget';
 import { CommandRegistry, isOSX, environment } from '@theia/core/lib/common';
 import { WorkspaceCommands, WorkspaceService } from '@theia/workspace/lib/browser';
 import { FileStat, FileSystem } from '@theia/filesystem/lib/common/filesystem';
-import { FileSystemUtils } from '@theia/filesystem/lib/common/filesystem-utils';
 import { KeymapsCommands } from '@theia/keymaps/lib/browser';
-import { CommonCommands } from '@theia/core/lib/browser';
+import { CommonCommands, LabelProvider } from '@theia/core/lib/browser';
 import { ApplicationInfo, ApplicationServer } from '@theia/core/lib/common/application-protocol';
 import { FrontendApplicationConfigProvider } from '@theia/core/lib/browser/frontend-application-config-provider';
+import { FileSystemUtils } from '@theia/filesystem/lib/common/filesystem-utils';
 
 @injectable()
 export class GettingStartedWidget extends ReactWidget {
 
+    /**
+     * The widget `id`.
+     */
     static readonly ID = 'getting.started.widget';
+    /**
+     * The widget `label` for display purposes.
+     */
     static readonly LABEL = 'Getting Started';
 
+    /**
+     * The `ApplicationInfo` for the application.
+     * Used in order to determine the application's version number if applicable.
+     */
     protected applicationInfo: ApplicationInfo | undefined;
+    /**
+     * The application's name for display purposes.
+     */
     protected applicationName = FrontendApplicationConfigProvider.get().applicationName;
 
     protected stat: FileStat | undefined;
     protected home: string | undefined;
 
-    protected readonly recentLimit = 5;
+    /**
+     * The amount of recent workspaces to display.
+     */
+    protected recentLimit = 5;
+    /**
+     * The list of recently used workspaces.
+     */
     protected recentWorkspaces: string[] = [];
 
-    protected readonly documentationUrl = 'https://www.theia-ide.org/doc/';
-    protected readonly extensionUrl = 'https://www.theia-ide.org/doc/Authoring_Extensions.html';
-    protected readonly pluginUrl = 'https://www.theia-ide.org/doc/Authoring_Plugins.html';
+    /**
+     * Collection of useful links to display.
+     */
+    protected links: Map<string, string> = new Map<string, string>();
 
     @inject(ApplicationServer)
     protected readonly appServer: ApplicationServer;
@@ -54,6 +74,9 @@ export class GettingStartedWidget extends ReactWidget {
 
     @inject(FileSystem)
     protected readonly fileSystem: FileSystem;
+
+    @inject(LabelProvider)
+    protected readonly labelProvider: LabelProvider;
 
     @inject(WorkspaceService)
     protected readonly workspaceService: WorkspaceService;
@@ -68,10 +91,14 @@ export class GettingStartedWidget extends ReactWidget {
         this.applicationInfo = await this.appServer.getApplicationInfo();
         this.recentWorkspaces = await this.workspaceService.recentWorkspaces();
         this.stat = await this.fileSystem.getCurrentUserHome();
-        this.home = (this.stat) ? new URI(this.stat.uri).path.toString() : undefined;
+        this.home = this.stat ? new URI(this.stat.uri).path.toString() : undefined;
+        this.setLinks();
         this.update();
     }
 
+    /**
+     * Render the content of the widget.
+     */
     protected render(): React.ReactNode {
         return <div className='gs-container'>
             {this.renderHeader()}
@@ -104,17 +131,24 @@ export class GettingStartedWidget extends ReactWidget {
         </div>;
     }
 
+    /**
+     * Render the main widget header including the title.
+     */
     protected renderHeader(): React.ReactNode {
         return <div className='gs-header'>
             <h1>{this.applicationName}<span className='gs-sub-header'> Getting Started</span></h1>
         </div>;
     }
 
+    /**
+     * Render the open section.
+     * The section includes displaying `open` commands.
+     */
     protected renderOpen(): React.ReactNode {
         const requireSingleOpen = isOSX || !environment.electron.is();
-        const open = (requireSingleOpen) ? <div className='gs-action-container'><a href='#' onClick={this.doOpen}>Open</a></div> : '';
-        const openFile = (!requireSingleOpen) ? <div className='gs-action-container'><a href='#' onClick={this.doOpenFile}>Open File</a></div> : '';
-        const openFolder = (!requireSingleOpen) ? <div className='gs-action-container'><a href='#' onClick={this.doOpenFolder}>Open Folder</a></div> : '';
+        const open = requireSingleOpen && <div className='gs-action-container'><a href='#' onClick={this.doOpen}>Open</a></div>;
+        const openFile = !requireSingleOpen && <div className='gs-action-container'><a href='#' onClick={this.doOpenFile}>Open File</a></div>;
+        const openFolder = !requireSingleOpen && <div className='gs-action-container'><a href='#' onClick={this.doOpenFolder}>Open Folder</a></div>;
         const openWorkspace = <a href='#' onClick={this.doOpenWorkspace}>Open Workspace</a>;
         return <div className='gs-section'>
             <h3 className='gs-section-header'><i className='fa fa-folder-open'></i>Open</h3>
@@ -125,9 +159,14 @@ export class GettingStartedWidget extends ReactWidget {
         </div>;
     }
 
+    /**
+     * Render the recently used workspaces section.
+     * List the recently used workspaces and upon selection
+     * open the workspace.
+     */
     protected renderRecentWorkspaces(): React.ReactNode {
-        const items = this.recentWorkspaces;
-        const paths = this.buildPaths(items);
+        const items: string[] = this.recentWorkspaces;
+        const paths: string[] = this.buildPaths(items);
         const content = paths.slice(0, this.recentLimit).map((item, index) =>
             <div className='gs-action-container' key={index}>
                 <a href='#' onClick={a => this.open(new URI(items[index]))}>{new URI(items[index]).path.base}</a>
@@ -136,18 +175,20 @@ export class GettingStartedWidget extends ReactWidget {
                 </span>
             </div>
         );
-        const more = (paths.length > this.recentLimit) ? <div className='gs-action-container'>
-            <a href='#' onClick={this.doOpenRecentWorkspace}>More...</a>
-        </div> : <div />;
+        const more = paths.length > this.recentLimit && <div className='gs-action-container'><a href='#' onClick={this.doOpenRecentWorkspace}>More...</a></div>;
         return <div className='gs-section'>
             <h3 className='gs-section-header'>
                 <i className='fa fa-clock-o'></i>Recent Workspaces
             </h3>
-            {(items.length > 0) ? content : <p className='gs-no-recent'>No Recent Workspaces</p>}
+            {items.length > 0 ? content : <p className='gs-no-recent'>No Recent Workspaces</p>}
             {more}
         </div>;
     }
 
+    /**
+     * Render the settings section which displays commands to open
+     * settings specific items.
+     */
     protected renderSettings(): React.ReactNode {
         return <div className='gs-section'>
             <h3 className='gs-section-header'>
@@ -163,24 +204,27 @@ export class GettingStartedWidget extends ReactWidget {
         </div>;
     }
 
+    /**
+     * Render the help section which displays useful links.
+     */
     protected renderHelp(): React.ReactNode {
+        const links = Array.from(this.links).map((link, index) =>
+            <div key={index} className='gs-action-container'>
+                <a href={link[1]} target='_blank'>{link[0]}</a>
+            </div>
+        );
         return <div className='gs-section'>
             <h3 className='gs-section-header'>
                 <i className='fa fa-question-circle'></i>
                 Help
             </h3>
-            <div className='gs-action-container'>
-                <a href={this.documentationUrl} target='_blank'>Documentation</a>
-            </div>
-            <div className='gs-action-container'>
-                <a href={this.extensionUrl} target='_blank'>Building a New Extension</a>
-            </div>
-            <div className='gs-action-container'>
-                <a href={this.pluginUrl} target='_blank'>Building a New Plugin</a>
-            </div>
+            {links}
         </div>;
     }
 
+    /**
+     * Render the version section.
+     */
     protected renderVersion(): React.ReactNode {
         return <div className='gs-section'>
             <div className='gs-action-container'>
@@ -191,22 +235,63 @@ export class GettingStartedWidget extends ReactWidget {
         </div>;
     }
 
+    /**
+     * Get the list of workspace paths for display purposes.
+     * @param workspaces the list of workspaces.
+     * @returns a list of workspace paths.
+     */
     protected buildPaths(workspaces: string[]): string[] {
         const paths: string[] = [];
         workspaces.forEach(workspace => {
             const uri = new URI(workspace);
-            const path = (this.home) ? FileSystemUtils.tildifyPath(uri.path.toString(), this.home) : uri.path.toString();
+            const pathLabel = this.labelProvider.getLongName(uri);
+            const path = this.home ? FileSystemUtils.tildifyPath(pathLabel, this.home) : pathLabel;
             paths.push(path);
         });
         return paths;
     }
 
+    /**
+     * Set the list of links.
+     */
+    protected setLinks(): void {
+        // The default implementation sets useful links which point to documentation.
+        this.links.set('Documentation', 'https://www.theia-ide.org/doc/');
+        this.links.set('Building an Extension', 'https://www.theia-ide.org/doc/Authoring_Extensions.html');
+        this.links.set('Building a New Plugin', 'https://www.theia-ide.org/doc/Authoring_Plugins.html');
+    }
+
+    /**
+     * Trigger the open dialog.
+     */
     protected doOpen = () => this.commandRegistry.executeCommand(WorkspaceCommands.OPEN.id);
+    /**
+     * Trigger the open file dialog.
+     */
     protected doOpenFile = () => this.commandRegistry.executeCommand(WorkspaceCommands.OPEN_FILE.id);
+    /**
+     * Trigger the open folder dialog.
+     */
     protected doOpenFolder = () => this.commandRegistry.executeCommand(WorkspaceCommands.OPEN_FOLDER.id);
+    /**
+     * Trigger the open workspace dialog.
+     */
     protected doOpenWorkspace = () => this.commandRegistry.executeCommand(WorkspaceCommands.OPEN_WORKSPACE.id);
+    /**
+     * Trigger opening the recent workspaces quick-open menu.
+     */
     protected doOpenRecentWorkspace = () => this.commandRegistry.executeCommand(WorkspaceCommands.OPEN_RECENT_WORKSPACE.id);
+    /**
+     * Trigger opening the preferences widget.
+     */
     protected doOpenPreferences = () => this.commandRegistry.executeCommand(CommonCommands.OPEN_PREFERENCES.id);
+    /**
+     * Trigger opening the keyboard shortcuts widget.
+     */
     protected doOpenKeyboardShortcuts = () => this.commandRegistry.executeCommand(KeymapsCommands.OPEN_KEYMAPS.id);
-    protected open = (workspace: URI) => this.workspaceService.open(workspace);
+    /**
+     * Open a given workspace.
+     * @param uri {URI} the workspace uri.
+     */
+    protected open = (uri: URI) => this.workspaceService.open(uri);
 }
