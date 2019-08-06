@@ -76,6 +76,9 @@ import { MimeService } from './mime-service';
 import { ApplicationShellMouseTracker } from './shell/application-shell-mouse-tracker';
 import { ViewContainer, ViewContainerIdentifier } from './view-container';
 import { QuickViewService } from './quick-view-service';
+import { ProgressLocationServiceImpl, ProgressLocationService } from './progress-location-service';
+import { ProgressClient } from '../common/progress-service-protocol';
+import { ProgressService } from '../common/progress-service';
 
 export const frontendApplicationModule = new ContainerModule((bind, unbind, isBound, rebind) => {
     const themeService = ThemeService.get();
@@ -251,6 +254,11 @@ export const frontendApplicationModule = new ContainerModule((bind, unbind, isBo
 
     bind(QuickViewService).toSelf().inSingletonScope();
     bind(QuickOpenContribution).toService(QuickViewService);
+
+    bind(ProgressLocationServiceImpl).toSelf().inSingletonScope();
+    bind(ProgressLocationService).toService(ProgressLocationServiceImpl);
+    bind(ProgressClient).toService(ProgressLocationServiceImpl);
+    bind(ProgressService).toSelf().inSingletonScope();
 });
 
 export function bindMessageService(bind: interfaces.Bind): interfaces.BindingWhenOnSyntax<MessageService> {
