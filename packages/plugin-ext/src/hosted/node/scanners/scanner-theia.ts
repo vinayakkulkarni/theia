@@ -111,11 +111,24 @@ export class TheiaPluginScanner implements PluginScanner {
     }
 
     protected readContributions(rawPlugin: PluginPackage): PluginContribution | undefined {
+        console.log('++++++++++++++++++++++++++++ readContributions');
+        const contributions: PluginContribution = {};
         if (!rawPlugin.contributes) {
-            return undefined;
+
+            contributions.commands = [{ command: 'some test command', title: 'title for test command' }];
+            contributions.taskDefinitions = [
+                {
+                    taskType: 'testType',
+                    properties: {
+                        required: ['tttttttttt'],
+                        all: ['tttttttttt', 'ddddddddd']
+                    }
+                }];
+
+            console.log('+++ return test Contributions');
+            return contributions;
         }
 
-        const contributions: PluginContribution = {};
         if (rawPlugin.contributes.configuration) {
             const config = this.readConfiguration(rawPlugin.contributes.configuration, rawPlugin.packagePath);
             contributions.configuration = config;
@@ -184,6 +197,17 @@ export class TheiaPluginScanner implements PluginScanner {
         }
 
         contributions.snippets = this.readSnippets(rawPlugin);
+
+        contributions.commands = [{ command: 'some test command', title: 'title for test command' }];
+        contributions.taskDefinitions = [
+            {
+                taskType: 'testType',
+                properties: {
+                    required: ['tttttttttt'],
+                    all: ['tttttttttt', 'ddddddddd']
+                }
+            }];
+
         return contributions;
     }
 

@@ -360,6 +360,7 @@ export interface PluginContribution {
     viewsContainers?: { [location: string]: ViewContainer[] };
     views?: { [location: string]: View[] };
     commands?: PluginCommand[]
+    taskDefinitions?: TaskDefinition[];
     menus?: { [location: string]: Menu[] };
     keybindings?: Keybinding[];
     debuggers?: DebuggerContribution[];
@@ -467,6 +468,14 @@ export interface ViewContainer {
 export interface View {
     id: string;
     name: string;
+}
+
+export interface TaskDefinition {
+    taskType: string;
+    properties: {
+        required: string[];
+        all: string[];
+    }
 }
 
 export interface PluginCommand {
