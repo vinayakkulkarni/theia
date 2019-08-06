@@ -23,6 +23,7 @@ import { MessageService } from '@theia/core/lib/common/message-service';
 import { WorkspaceService } from '@theia/workspace/lib/browser/workspace-service';
 import { FileSystem } from '@theia/filesystem/lib/common';
 import { GitErrorHandler } from './git-error-handler';
+import { ProgressService } from '@theia/core/lib/common/progress-service';
 
 export enum GitAction {
     PULL,
@@ -38,6 +39,7 @@ export enum GitAction {
 export class GitQuickOpenService {
 
     @inject(GitErrorHandler) protected readonly gitErrorHandler: GitErrorHandler;
+    @inject(ProgressService) protected readonly progressService: ProgressService;
 
     constructor(
         @inject(Git) protected readonly git: Git,
@@ -109,7 +111,7 @@ export class GitQuickOpenService {
             const remotes = await this.getRemotes();
             const execute = async (item: QuickOpenItem) => {
                 try {
-                    await this.git.fetch(repository, { remote: item.getLabel() });
+                    await this.withProgress(this.git.fetch(repository, { remote: item.getLabel() }));
                 } catch (error) {
                     this.gitErrorHandler.handleError(error);
                 }
@@ -130,10 +132,10 @@ export class GitQuickOpenService {
         if (repository) {
             try {
                 if (action === GitAction.PULL) {
-                    await this.git.pull(repository, { remote: defaultRemote });
+                    await this.withProgress(this.git.pull(repository, { remote: defaultRemote }));
                     console.log(`Git Pull: successfully completed from ${defaultRemote}.`);
                 } else if (action === GitAction.PUSH) {
-                    await this.git.push(repository, { remote: defaultRemote });
+                    await this.withProgress(this.git.push(repository, { remote: defaultRemote }));
                     console.log(`Git Push: successfully completed to ${defaultRemote}.`);
                 }
             } catch (error) {
@@ -148,7 +150,7 @@ export class GitQuickOpenService {
             const [remotes, currentBranch] = await Promise.all([this.getRemotes(), this.getCurrentBranch()]);
             const execute = async (item: QuickOpenItem) => {
                 try {
-                    await this.git.push(repository, { remote: item.getLabel() });
+                    await this.withProgress(this.git.push(repository, { remote: item.getLabel() }));
                 } catch (error) {
                     this.gitErrorHandler.handleError(error);
                 }
@@ -172,7 +174,7 @@ export class GitQuickOpenService {
                 // The first remote is the default.
                 if (remoteItem.ref.name === defaultRemote) {
                     try {
-                        await this.git.pull(repository, { remote: remoteItem.getLabel() });
+                        await this.withProgress(this.git.pull(repository, { remote: remoteItem.getLabel() }));
                     } catch (error) {
                         this.gitErrorHandler.handleError(error);
                     }
@@ -181,7 +183,7 @@ export class GitQuickOpenService {
                     const branches = await this.getBranches();
                     const executeBranch = async (branchItem: GitQuickOpenItem<Branch>) => {
                         try {
-                            await this.git.pull(repository, { remote: remoteItem.ref.name, branch: branchItem.ref.nameWithoutRemote });
+                            await this.withProgress(this.git.pull(repository, { remote: remoteItem.ref.name, branch: branchItem.ref.nameWithoutRemote }));
                         } catch (error) {
                             this.gitErrorHandler.handleError(error);
                         }
@@ -209,7 +211,7 @@ export class GitQuickOpenService {
             const [branches, currentBranch] = await Promise.all([this.getBranches(), this.getCurrentBranch()]);
             const execute = async (item: GitQuickOpenItem<Branch>) => {
                 try {
-                    await this.git.merge(repository, { branch: item.getLabel()! });
+                    await this.withProgress(this.git.merge(repository, { branch: item.getLabel()! }));
                 } catch (error) {
                     this.gitErrorHandler.handleError(error);
                 }
@@ -232,7 +234,7 @@ export class GitQuickOpenService {
             }
             const switchBranch = async (item: GitQuickOpenItem<Branch>) => {
                 try {
-                    await this.git.checkout(repository, { branch: item.ref.nameWithoutRemote });
+                    await this.withProgress(this.git.checkout(repository, { branch: item.ref.nameWithoutRemote }));
                 } catch (error) {
                     this.gitErrorHandler.handleError(error);
                 }
@@ -249,7 +251,9 @@ export class GitQuickOpenService {
             };
             const items: QuickOpenItem[] = branches.map(branch => new GitQuickOpenItem(branch, switchBranch, toLabel, toDescription));
             const createBranchItem = (item: QuickOpenItem) => {
-                const gitQuickOpenService = this;
+                const git = this.git;
+                const gitErrorHandler = this.gitErrorHandler;
+                const withProgress = this.withProgress;
                 const createBranchModel: QuickOpenModel = {
                     onType(lookFor: string, acceptor: (items: QuickOpenItem[]) => void): void {
                         const dynamicItems: QuickOpenItem[] = [];
@@ -261,10 +265,10 @@ export class GitQuickOpenService {
                                 `Create a new local branch with name: ${lookFor}. ${suffix}`,
                                 async () => {
                                     try {
-                                        await gitQuickOpenService.git.branch(repository, { toCreate: lookFor });
-                                        await gitQuickOpenService.git.checkout(repository, { branch: lookFor });
+                                        await withProgress(git.branch(repository, { toCreate: lookFor }));
+                                        await withProgress(git.checkout(repository, { branch: lookFor }));
                                     } catch (error) {
-                                        gitQuickOpenService.gitErrorHandler.handleError(error);
+                                        gitErrorHandler.handleError(error);
                                     }
                                 }
                             ));
@@ -330,7 +334,7 @@ export class GitQuickOpenService {
     async stash(): Promise<void> {
         const doStash = async (message: string) => {
             if (this.repositoryProvider.selectedRepository) {
-                this.git.stash(this.repositoryProvider.selectedRepository, { message });
+                this.withProgress(this.git.stash(this.repositoryProvider.selectedRepository, { message }));
             }
         };
         const quickOpenModel: QuickOpenModel = {
@@ -362,10 +366,10 @@ export class GitQuickOpenService {
             if (list) {
                 const quickOpenItems = list.map(stash => new GitQuickOpenItem<StashEntry>(stash, async () => {
                     try {
-                        await this.git.stash(repo, {
+                        await this.withProgress(this.git.stash(repo, {
                             action,
                             id: stash.id
-                        });
+                        }));
                         if (getMessage) {
                             this.messageService.info(await getMessage());
                         }
@@ -390,7 +394,7 @@ export class GitQuickOpenService {
         this.doStashAction('drop', 'Select a stash entry to remove it from the list of stash entries.',
             async () => {
                 if (this.repositoryProvider.selectedRepository) {
-                    const list = await this.git.stash(this.repositoryProvider.selectedRepository, { action: 'list' });
+                    const list = await this.withProgress(this.git.stash(this.repositoryProvider.selectedRepository, { action: 'list' }));
                     let listString = '';
                     list.forEach(stashEntry => {
                         listString += stashEntry.message + '\n';
@@ -407,9 +411,9 @@ export class GitQuickOpenService {
         const repo = this.repositoryProvider.selectedRepository;
         if (repo) {
             try {
-                await this.git.stash(repo, {
+                await this.withProgress(this.git.stash(repo, {
                     action: 'apply'
-                });
+                }));
             } catch (error) {
                 this.gitErrorHandler.handleError(error);
             }
@@ -420,9 +424,9 @@ export class GitQuickOpenService {
         const repo = this.repositoryProvider.selectedRepository;
         if (repo) {
             try {
-                await this.git.stash(repo, {
+                await this.withProgress(this.git.stash(repo, {
                     action: 'pop'
-                });
+                }));
             } catch (error) {
                 this.gitErrorHandler.handleError(error);
             }
@@ -457,7 +461,7 @@ export class GitQuickOpenService {
     private async getRemotes(): Promise<Remote[]> {
         const repository = this.getRepository();
         try {
-            return repository ? await this.git.remote(repository, { verbose: true }) : [];
+            return repository ? await this.withProgress(this.git.remote(repository, { verbose: true })) : [];
         } catch (error) {
             this.gitErrorHandler.handleError(error);
             return [];
@@ -466,7 +470,7 @@ export class GitQuickOpenService {
 
     private async getTags(repository: Repository | undefined = this.getRepository()): Promise<Tag[]> {
         if (repository) {
-            const result = await this.git.exec(repository, ['tag', '--sort=-creatordate']);
+            const result = await this.withProgress(this.git.exec(repository, ['tag', '--sort=-creatordate']));
             return result.stdout !== '' ? result.stdout.trim().split('\n').map(tag => ({ name: tag })) : [];
         }
         return [];
@@ -477,10 +481,10 @@ export class GitQuickOpenService {
             return [];
         }
         try {
-            const [local, remote] = await Promise.all([
+            const [local, remote] = await this.withProgress(Promise.all([
                 this.git.branch(repository, { type: 'local' }),
                 this.git.branch(repository, { type: 'remote' })
-            ]);
+            ]));
             return [...local, ...remote];
         } catch (error) {
             this.gitErrorHandler.handleError(error);
@@ -493,11 +497,15 @@ export class GitQuickOpenService {
             return undefined;
         }
         try {
-            return await this.git.branch(repository, { type: 'current' });
+            return await this.withProgress(this.git.branch(repository, { type: 'current' }));
         } catch (error) {
             this.gitErrorHandler.handleError(error);
             return undefined;
         }
+    }
+
+    protected withProgress<T>(task: Promise<T>): Promise<T> {
+        return this.progressService.withProgress('', 'scm', task);
     }
 
 }
