@@ -35,6 +35,9 @@ export class NotificationsContribution implements FrontendApplicationContributio
     @inject(NotificationCenter)
     protected readonly notificationsCenter: NotificationCenter; // required for initialization
 
+    @inject(StatusBarProgress)
+    protected readonly statusBarProgress: StatusBarProgress; // required for initialization
+
     @inject(StatusBar)
     protected readonly statusBar: StatusBar;
 
