@@ -42,6 +42,10 @@ export class HostedPluginReader implements BackendApplicationContribution {
      */
     private pluginsIdsFiles: Map<string, string> = new Map();
 
+    async initialize() {
+        this.doGetPluginMetadata(process.env.HOSTED_PLUGIN);
+    }
+
     configure(app: express.Application): void {
         app.get('/hostedPlugin/:pluginId/:path(*)', (req, res) => {
             const pluginId = req.params.pluginId;
