@@ -14,7 +14,7 @@
  * SPDX-License-Identifier: EPL-2.0 OR GPL-2.0 WITH Classpath-exception-2.0
  ********************************************************************************/
 
-import { ProgressLocationService } from './progress-location-service';
+import { ProgressLocationEvent } from './progress-location-service';
 import { DisposableCollection, Disposable } from '../common';
 import { Event } from '../common/event';
 
@@ -27,7 +27,7 @@ export class ProgressBar implements Disposable {
 
     protected progressBar: HTMLDivElement;
 
-    constructor(protected options: ProgressBar.Options, onProgress: Event<ProgressLocationService.ProgressEvent>) {
+    constructor(protected options: ProgressBar.Options, onProgress: Event<ProgressLocationEvent>) {
         this.progressBar = document.createElement('div');
         this.progressBar.className = 'theia-progress-bar';
         this.progressBar.style.display = 'none';
@@ -46,7 +46,7 @@ export class ProgressBar implements Disposable {
         ]);
     }
 
-    protected onProgress(event: ProgressLocationService.ProgressEvent): void {
+    protected onProgress(event: ProgressLocationEvent): void {
         if (this.toDispose.disposed) {
             return;
         }

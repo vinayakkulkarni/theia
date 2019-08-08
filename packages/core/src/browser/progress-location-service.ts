@@ -22,29 +22,26 @@ import { Deferred } from '../common/promise-util';
 import { Event, Emitter } from '../common/event';
 import throttle = require('lodash.throttle');
 
-export const ProgressLocationService = Symbol('ProgressLocationService');
-export interface ProgressLocationService {
-    onProgress(locationId: string): Event<ProgressLocationService.ProgressEvent>;
-}
-export namespace ProgressLocationService {
-    export interface ProgressEvent {
-        message?: string;
-        show: boolean;
-    }
+export interface ProgressLocationEvent {
+    message?: string;
+    show: boolean;
 }
 
 @injectable()
-export class ProgressLocationServiceImpl implements ProgressLocationService, ProgressClient {
+export class ProgressLocationService implements ProgressClient {
 
-    protected emitters = new Map<string, Emitter<ProgressLocationService.ProgressEvent>>();
+    protected emitters = new Map<string, Emitter<ProgressLocationEvent>[]>();
 
-    onProgress(locationId: string): Event<ProgressLocationService.ProgressEvent> {
-        if (this.emitters.get(locationId)) {
-            throw new Error(`Progress listener for location "${locationId}" is already registered.`);
-        }
-        const emitter = new Emitter<ProgressLocationService.ProgressEvent>();
-        this.emitters.set(locationId, emitter);
+    onProgress(locationId: string): Event<ProgressLocationEvent> {
+        const emitter = this.addEmitter(locationId);
         return emitter.event;
+    }
+    protected addEmitter(locationId: string): Emitter<ProgressLocationEvent> {
+        const emitter = new Emitter<ProgressLocationEvent>();
+        const list = this.emitters.get(locationId) || [];
+        list.push(emitter);
+        this.emitters.set(locationId, list);
+        return emitter;
     }
 
     protected readonly progressByLocation = new Map<string, Set<string>>();
@@ -71,12 +68,11 @@ export class ProgressLocationServiceImpl implements ProgressLocationService, Pro
         this.fireEvent(locationId, show);
     }
     protected readonly fireEvent = throttle((locationId: string, show: boolean) => {
-        const emitter = this.emitters.get(locationId);
-        if (!emitter) {
-            console.warn(`Unknown location with id "${locationId}"`);
-            return;
+        let emitters = this.emitters.get(locationId);
+        if (!emitters) {
+            emitters = [ this.addEmitter(locationId) ];
         }
-        emitter.fire({ show });
+        emitters.forEach(e => e.fire({ show }));
     }, 250);
 
     protected getLocationId(message: ProgressMessage): string {
