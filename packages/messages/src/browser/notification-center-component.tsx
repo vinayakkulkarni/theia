@@ -16,7 +16,7 @@
 
 import * as React from 'react';
 import { DisposableCollection } from '@theia/core';
-import { NotificationManager, Notification } from './notifications-manager';
+import { NotificationManager, Notification, NotificationUpdateEvent } from './notifications-manager';
 
 const PerfectScrollbar = require('react-perfect-scrollbar');
 
@@ -24,7 +24,7 @@ export interface NotificationCenterComponentProps {
     readonly manager: NotificationManager;
 }
 
-interface NotificationCenterComponentState extends NotificationManager.UpdateEvent { }
+interface NotificationCenterComponentState extends NotificationUpdateEvent { }
 
 export class NotificationCenterComponent extends React.Component<NotificationCenterComponentProps, NotificationCenterComponentState> {
 
@@ -62,8 +62,8 @@ export class NotificationCenterComponent extends React.Component<NotificationCen
                     <div className='theia-notification-center-header-title'>{title}</div>
                     <div className='theia-notification-center-header-actions'>
                         <ul className='theia-notification-actions'>
-                            <li className='collapse' title='Hide' onClick={this.onHide.bind(this)} />
-                            <li className='clear' title='Clear All' onClick={this.onClearAll.bind(this)} />
+                            <li className='collapse' title='Hide' onClick={this.onHide} />
+                            <li className='clear' title='Clear All' onClick={this.onClearAll} />
                         </ul>
                     </div>
                 </div>
@@ -76,27 +76,44 @@ export class NotificationCenterComponent extends React.Component<NotificationCen
         );
     }
 
-    protected onHide(): void {
+    protected onHide = () => {
         this.props.manager.hide();
     }
 
-    protected onClearAll(): void {
+    protected onClearAll = () => {
         this.props.manager.clearAll();
     }
 
-    protected onClear(messageId: string): void {
-        this.props.manager.clear(messageId);
+    protected onClear = (event: React.MouseEvent) => {
+        if (event.target instanceof HTMLElement) {
+            const messageId = event.target.dataset.messageId;
+            if (messageId) {
+                this.props.manager.clear(messageId);
+            }
+        }
     }
 
-    protected onToggleExpansion(messageId: string): void {
-        this.props.manager.toggleExpansion(messageId);
+    protected onToggleExpansion = (event: React.MouseEvent) => {
+        if (event.target instanceof HTMLElement) {
+            const messageId = event.target.dataset.messageId;
+            if (messageId) {
+                this.props.manager.toggleExpansion(messageId);
+            }
+        }
     }
 
-    protected onAction(messageId: string, action: string): void {
-        this.props.manager.accept(messageId, action);
+    protected onAction = (event: React.MouseEvent) => {
+        if (event.target instanceof HTMLElement) {
+            const messageId = event.target.dataset.messageId;
+            const action = event.target.dataset.action;
+            if (messageId && action) {
+                this.props.manager.accept(messageId, action);
+                this.props.manager.toggleExpansion(messageId);
+            }
+        }
     }
 
-    protected messageClickeHandler(event: React.MouseEvent): void {
+    protected messageClickeHandler = (event: React.MouseEvent) => {
         if (event.target instanceof HTMLAnchorElement) {
             event.stopPropagation();
             event.preventDefault();
@@ -112,13 +129,14 @@ export class NotificationCenterComponent extends React.Component<NotificationCen
                 <div className='theia-notification-list-item-content-main'>
                     <div className={`theia-notification-icon theia-notification-icon-${type}`} />
                     <div className='theia-notification-message'>
-                        <span dangerouslySetInnerHTML={{ __html: message }} onClick={this.messageClickeHandler.bind(this)} />
+                        <span dangerouslySetInnerHTML={{ __html: message }} onClick={this.messageClickeHandler} />
                     </div>
                     <ul className='theia-notification-actions'>
                         {expandable && (
-                            <li className={collapsed ? 'expand' : 'collapse'} title={collapsed ? 'Expand' : 'Collapse'} onClick={() => this.onToggleExpansion(messageId)} />
+                            <li className={collapsed ? 'expand' : 'collapse'} title={collapsed ? 'Expand' : 'Collapse'}
+                                data-message-id={messageId} onClick={this.onToggleExpansion} />
                         )}
-                        <li className='clear' title='Clear' onClick={() => this.onClear(messageId)} />
+                        <li className='clear' title='Clear' data-message-id={messageId} onClick={this.onClear} />
                     </ul>
                 </div>
                 <div className='theia-notification-list-item-content-bottom'>
@@ -128,7 +146,8 @@ export class NotificationCenterComponent extends React.Component<NotificationCen
                     <div className='theia-notification-buttons'>
                         {notification.actions && notification.actions.map((action, index) => (
                             <button key={messageId + `-action-${index}`} className='theia-button'
-                                onClick={() => this.onAction(messageId, action)}>
+                                data-message-id={messageId} data-action={action}
+                                onClick={this.onAction}>
                                 {action}
                             </button>
                         ))}

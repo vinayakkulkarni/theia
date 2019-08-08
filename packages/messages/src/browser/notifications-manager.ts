@@ -17,7 +17,7 @@
 import { injectable, inject, postConstruct } from 'inversify';
 import { MessageClient, MessageType, Message as PlainMessage, ProgressMessage, ProgressUpdate, CancellationToken } from '@theia/core/lib/common';
 import { deepClone } from '@theia/core/lib/common/objects';
-import { Event, Emitter } from '@theia/core';
+import { Emitter } from '@theia/core';
 import { Deferred } from '@theia/core/lib/common/promise-util';
 import { Md5 } from 'ts-md5';
 import * as markdownit from 'markdown-it';
@@ -27,23 +27,9 @@ import { ContextKeyService, ContextKey } from '@theia/core/lib/browser/context-k
 import { OpenerService } from '@theia/core/lib/browser';
 import URI from '@theia/core/lib/common/uri';
 
-export const NotificationManager = Symbol('NotificationManager');
-export interface NotificationManager {
+export interface NotificationUpdateEvent {
+    readonly notifications: Notification[];
     readonly open: boolean;
-    readonly onUpdate: Event<NotificationManager.UpdateEvent>;
-    accept(notification: Notification | string, action: string): void;
-    hide(): void;
-    toggle(): void;
-    clear(notification: Notification | string): void;
-    clearAll(): void;
-    toggleExpansion(notification: string): void;
-    openLink(link: string): Promise<void>;
-}
-export namespace NotificationManager {
-    export interface UpdateEvent {
-        readonly notifications: Notification[];
-        readonly open: boolean;
-    }
 }
 
 export interface Notification {
@@ -63,7 +49,7 @@ export namespace Notification {
 }
 
 @injectable()
-export class NotificationManagerImpl extends MessageClient implements NotificationManager {
+export class NotificationManager extends MessageClient {
 
     @inject(NotificationPreferences)
     protected readonly preferences: NotificationPreferences;
@@ -74,7 +60,7 @@ export class NotificationManagerImpl extends MessageClient implements Notificati
     @inject(OpenerService)
     protected readonly openerService: OpenerService;
 
-    protected readonly onUpdateEmitter = new Emitter<NotificationManager.UpdateEvent>();
+    protected readonly onUpdateEmitter = new Emitter<NotificationUpdateEvent>();
     protected readonly fireUpdateEvent = throttle(() => {
         const notifications = deepClone(Array.from(this.notifications.values()));
         this.onUpdateEmitter.fire({ notifications, open: this.open });

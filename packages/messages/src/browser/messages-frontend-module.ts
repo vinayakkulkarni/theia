@@ -18,7 +18,7 @@ import '../../src/browser/style/index.css';
 
 import { ContainerModule } from 'inversify';
 import { MessageClient } from '@theia/core/lib/common';
-import { NotificationManager, NotificationManagerImpl } from './notifications-manager';
+import { NotificationManager } from './notifications-manager';
 import { bindNotificationPreferences } from './notification-preferences';
 import { NotificationCenter } from './notification-center';
 import { StatusBarProgress } from './status-bar-progress';
@@ -35,8 +35,7 @@ export default new ContainerModule((bind, unbind, isBound, rebind) => {
     bind(KeybindingContribution).toService(NotificationsContribution);
     bind(NotificationsKeybindingContext).toSelf().inSingletonScope();
     bind(KeybindingContext).toService(NotificationsKeybindingContext);
-    bind(NotificationManagerImpl).toSelf().inSingletonScope();
-    bind(NotificationManager).toService(NotificationManagerImpl);
-    rebind(MessageClient).toService(NotificationManagerImpl);
+    bind(NotificationManager).toSelf().inSingletonScope();
+    rebind(MessageClient).toService(NotificationManager);
     bindNotificationPreferences(bind);
 });
