@@ -18,7 +18,7 @@ import { injectable, inject } from 'inversify';
 import { QuickOpenService, QuickOpenItem, QuickOpenModel, QuickOpenMode } from '@theia/core/lib/browser';
 import { PluginServer } from '../../common';
 import { Command } from '@theia/core';
-import { HostedPluginSupport } from '../../hosted/browser/hosted-plugin';
+import { MainPluginService } from '../../hosted/browser/main-plugin-service';
 
 @injectable()
 export class PluginExtDeployCommandService implements QuickOpenModel {
@@ -38,8 +38,8 @@ export class PluginExtDeployCommandService implements QuickOpenModel {
     @inject(PluginServer)
     protected readonly pluginServer: PluginServer;
 
-    @inject(HostedPluginSupport)
-    protected readonly hostedPluginSupport: HostedPluginSupport;
+    @inject(MainPluginService)
+    protected readonly mainPluginService: MainPluginService;
 
     constructor() {
         this.items = [];
@@ -69,7 +69,7 @@ export class PluginExtDeployCommandService implements QuickOpenModel {
     public async onType(lookFor: string, acceptor: (items: QuickOpenItem[]) => void): Promise<void> {
         this.items = [];
         if (lookFor || lookFor.length > 0) {
-            this.items.push(new DeployQuickOpenItem(lookFor, this.pluginServer, this.hostedPluginSupport, 'Deploy this plugin'));
+            this.items.push(new DeployQuickOpenItem(lookFor, this.pluginServer, this.mainPluginService, 'Deploy this plugin'));
         }
         acceptor(this.items);
     }
@@ -81,7 +81,7 @@ export class DeployQuickOpenItem extends QuickOpenItem {
     constructor(
         protected readonly name: string,
         protected readonly pluginServer: PluginServer,
-        protected readonly hostedPluginSupport: HostedPluginSupport,
+        protected readonly mainPluginService: MainPluginService,
         protected readonly description?: string
     ) {
         super();
@@ -100,7 +100,7 @@ export class DeployQuickOpenItem extends QuickOpenItem {
             return false;
         }
         const promise = this.pluginServer.deploy(this.name);
-        promise.then(() => this.hostedPluginSupport.initPlugins());
+        promise.then(() => this.mainPluginService.initPlugins());
         return true;
     }
 

@@ -60,12 +60,14 @@ import { ViewColumnService } from './view-column-service';
 import { ViewContextKeyService } from './view/view-context-key-service';
 import { PluginViewWidget, PluginViewWidgetIdentifier } from './view/plugin-view-widget';
 import { TreeViewWidgetIdentifier, VIEW_ITEM_CONTEXT_MENU, PluginTree, TreeViewWidget, PluginTreeModel } from './view/tree-view-widget';
+import { MainPluginService } from '../../hosted/browser/main-plugin-service';
 
 export default new ContainerModule((bind, unbind, isBound, rebind) => {
 
     bind(ModalNotification).toSelf().inSingletonScope();
 
     bind(HostedPluginSupport).toSelf().inSingletonScope();
+    bind(MainPluginService).toService(HostedPluginSupport);
     bind(HostedPluginWatcher).toSelf().inSingletonScope();
     bind(SelectionProviderCommandContribution).toSelf().inSingletonScope();
     bind(CommandContribution).toService(SelectionProviderCommandContribution);

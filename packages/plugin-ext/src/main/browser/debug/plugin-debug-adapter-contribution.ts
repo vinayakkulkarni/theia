@@ -19,7 +19,7 @@ import { DebugConfiguration } from '@theia/debug/lib/common/debug-configuration'
 import { IJSONSchemaSnippet, IJSONSchema } from '@theia/core/lib/common/json-schema';
 import { MaybePromise } from '@theia/core/lib/common/types';
 import { DebuggerDescription } from '@theia/debug/lib/common/debug-service';
-import { HostedPluginSupport } from '../../../hosted/browser/hosted-plugin';
+import { MainPluginService } from '../../../hosted/browser/main-plugin-service';
 
 /**
  * Plugin [DebugAdapterContribution](#DebugAdapterContribution).
@@ -28,7 +28,7 @@ export class PluginDebugAdapterContribution {
     constructor(
         protected readonly description: DebuggerDescription,
         protected readonly debugExt: DebugExt,
-        protected readonly pluginService: HostedPluginSupport) { }
+        protected readonly pluginService: MainPluginService) { }
 
     get type(): string {
         return this.description.type;

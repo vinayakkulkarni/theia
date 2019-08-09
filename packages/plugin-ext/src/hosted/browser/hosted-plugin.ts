@@ -33,13 +33,11 @@ import { PreferenceServiceImpl, PreferenceProviderProvider } from '@theia/core/l
 import { WorkspaceService } from '@theia/workspace/lib/browser';
 import { PluginContributionHandler } from '../../main/browser/plugin-contribution-handler';
 import { getQueryParameters } from '../../main/browser/env-main';
-import { ExtPluginApi, MainPluginApiProvider } from '../../common/plugin-ext-api-contribution';
+import { MainPluginApiProvider } from '../../common/plugin-ext-api-contribution';
 import { PluginPathsService } from '../../main/common/plugin-paths-protocol';
 import { StoragePathService } from '../../main/browser/storage-path-service';
 import { getPreferences } from '../../main/browser/preference-registry-main';
 import { PluginServer } from '../../common/plugin-protocol';
-import { KeysToKeysToAnyValue } from '../../common/types';
-import { FileStat } from '@theia/filesystem/lib/common/filesystem';
 import { MonacoTextmateService } from '@theia/monaco/lib/browser/textmate';
 import { Deferred } from '@theia/core/lib/common/promise-util';
 import { DebugSessionManager } from '@theia/debug/lib/browser/debug-session-manager';
@@ -50,12 +48,12 @@ import { isCancelled } from '@theia/core';
 import { FrontendApplicationStateService } from '@theia/core/lib/browser/frontend-application-state';
 import { PluginViewRegistry } from '../../main/browser/view/plugin-view-registry';
 import { TaskProviderRegistry, TaskResolverRegistry } from '@theia/task/lib/browser/task-contribution';
+import { MainPluginService, DebugActivationEvent, PluginsInitializationData } from './main-plugin-service';
 
 export type PluginHost = 'frontend' | string;
-export type DebugActivationEvent = 'onDebugResolve' | 'onDebugInitialConfigurations' | 'onDebugAdapterProtocolTracker';
 
 @injectable()
-export class HostedPluginSupport {
+export class HostedPluginSupport implements MainPluginService {
     container: interfaces.Container;
 
     @inject(ILogger)
@@ -370,14 +368,4 @@ export class HostedPluginSupport {
         }
     }
 
-}
-
-interface PluginsInitializationData {
-    plugins: PluginMetadata[],
-    logPath: string,
-    storagePath: string | undefined,
-    pluginAPIs: ExtPluginApi[],
-    globalStates: KeysToKeysToAnyValue,
-    workspaceStates: KeysToKeysToAnyValue,
-    roots: FileStat[],
 }
