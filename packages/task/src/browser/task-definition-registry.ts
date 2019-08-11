@@ -15,13 +15,24 @@
  ********************************************************************************/
 
 import { injectable } from 'inversify';
+import { Deferred } from '@theia/core/lib/common/promise-util';
 import { TaskConfiguration, TaskCustomization, TaskDefinition } from '../common';
 
 @injectable()
 export class TaskDefinitionRegistry {
 
+    private readonly readyPromise = new Deferred<void>();
     // task type - array of task definitions
     private definitions: Map<string, TaskDefinition[]> = new Map();
+
+    /** Set the `ready` status */
+    setReady(): void {
+        this.readyPromise.resolve();
+    }
+
+    get ready(): Promise<void> {
+        return this.readyPromise.promise;
+    }
 
     /**
      * Finds the task definition(s) from the registry with the given `taskType`.

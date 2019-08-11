@@ -281,6 +281,7 @@ export class TaskConfigurations implements Disposable {
             const configuredTasksArray: TaskConfiguration[] = [];
             const customizations: TaskCustomization[] = [];
 
+            await this.taskDefinitionRegistry.ready;
             tasksArray.forEach(t => {
                 if (this.isDetectedTask(t)) {
                     customizations.push(t);

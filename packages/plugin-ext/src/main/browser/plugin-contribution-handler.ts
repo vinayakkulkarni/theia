@@ -187,6 +187,7 @@ export class PluginContributionHandler {
         if (contributions.taskDefinitions) {
             contributions.taskDefinitions.forEach(def => this.taskDefinitionRegistry.register(def));
         }
+        this.taskDefinitionRegistry.setReady();
 
         if (contributions.problemPatterns) {
             contributions.problemPatterns.forEach(pattern => this.problemPatternRegistry.register(pattern));
